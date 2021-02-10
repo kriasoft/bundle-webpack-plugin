@@ -1,0 +1,31 @@
+{
+  "name": "bundle-webpack-plugin",
+  "version": "0.1.0",
+  "description": "Creates an additional application bundle for the selected execution environment (target).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "kriasoft/bundle-webpack-plugin",
+  "keywords": [
+    "webpack",
+    "webpack-plugin",
+    "plugin",
+    "bundle",
+    "bundler",
+    "bundling"
+  ],
+  "author": "Konstantin Tarkus (koistya@tarkus.me)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kriasoft/bundle-webpack-plugin/issues"
+  },
+  "homepage": "https://github.com/kriasoft/bundle-webpack-plugin#readme",
+  "peerDependencies": {
+    "webpack": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/webpack": "^4.41.26",
+    "prettier": "^2.2.1"
+  }
+}
