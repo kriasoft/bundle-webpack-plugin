@@ -2,13 +2,13 @@
  * @copyright 2021-present Kriasoft (https://git.io/JtoKE)
  *
  * @typedef {import("webpack").Compiler} Compiler
- * @typedef {import("webpack").Compilation} Compilation
+ * @typedef {import("webpack").compilation.Compilation} Compilation
  * @typedef {import("webpack").Configuration} Configuration
  * @typedef {import("webpack").javascript.JavascriptParser} JavascriptParser
  */
 
 const path = require("path");
-const { EntryPlugin } = require("webpack");
+const webpack = require("webpack");
 
 /**
  * Creates an additional application bundle for the selected execution
@@ -18,14 +18,8 @@ class BundleWebpackPlugin {
   /**
    * Creates a new instance of the plugin.
    *
-   * @param {Object} config Webpack configuration to use for the bundle.
-   * @param {string} [config.name] The name of the bundle.
+   * @param {Configuration} config Webpack configuration to use for the bundle.
    * @param {string} [config.entry] The entry object (file path).
-   * @param {Configuration["target"]} [config.target] The target execution environment.
-   * @param {Configuration["output"]} [config.output] The bundle output options.
-   * @param {Configuration["devtool"]} [config.devtool]
-   * @param {Configuration["stats"]} [config.stats]
-   * @param {Configuration["optimization"]} [config.optimization]
    */
   constructor(config = {}) {
     this.config = config;
@@ -57,46 +51,63 @@ class BundleWebpackPlugin {
     const srcPath = path.resolve(this.config.entry);
     compilation.fileDependencies.add(srcPath);
 
-    const childCompiler = compilation.createChildCompiler(name, {
-      ...this.config.output,
-      // The output directory as an absolute path.
-      path:
-        (this.config.output && this.config.output.path) ||
-        this.compiler.options.output.path,
-      // The filename of the output bundle.
-      filename:
-        (this.config.output && this.config.output.filename) || `${name}.js`,
-    });
+    const baseOptions = webpack.config.getNormalizedWebpackOptions(this.config);
+    webpack.config.applyWebpackOptionsDefaults(baseOptions);
 
+    /** @type {Compiler} */
+    const childCompiler = compilation.createChildCompiler(
+      name,
+      webpack.util.cleverMerge(
+        {
+          path: this.compiler.options.output.path,
+          filename: `${name}.js`,
+          environment: baseOptions.output.environment,
+          iife: false,
+        },
+        this.config.output
+      )
+    );
+
+    childCompiler.name = name;
     childCompiler.context = this.compiler.context;
     childCompiler.inputFileSystem = this.compiler.inputFileSystem;
     childCompiler.outputFileSystem = this.compiler.outputFileSystem;
+    childCompiler.options.mode = this.compiler.options.mode;
+    childCompiler.options.externalsPresets = baseOptions.externalsPresets;
+    delete childCompiler.options.devServer;
 
-    if (this.config.target !== undefined) {
-      childCompiler.options.target = this.config.target;
-    }
+    // Apply the known Webpack options to the child compiler configuration.
+    [
+      "bail",
+      "target",
+      "devtool",
+      "experiments",
+      "externalPresets",
+      "mode",
+      "module",
+      "name",
+      "node",
+      "optimization",
+      "parallelism",
+      "performance",
+      "profile",
+      "recordsInputPath",
+      "recordsOutputPath",
+      "target",
+      "watch",
+      "stats",
+    ]
+      .filter((key) => this.config[key] !== undefined)
+      .forEach((key) => {
+        childCompiler.options[key] = webpack.util.cleverMerge(
+          childCompiler.options[key],
+          this.config[key]
+        );
+      });
 
-    if (this.config.devtool !== undefined) {
-      childCompiler.options.devtool = this.config.devtool;
-    }
-
-    if (this.config.stats !== undefined) {
-      childCompiler.options.stats = this.config.stats;
-    }
-
-    if (this.config.optimization !== undefined) {
-      childCompiler.options.optimization = {
-        ...childCompiler.optimization,
-        ...this.config.optimization,
-        splitChunks: {
-          ...(childCompiler.optimization &&
-            childCompiler.optimization.splitChunks),
-          ...(this.config.optimization && this.config.optimization.splitChunks),
-        },
-      };
-    }
-
-    new EntryPlugin(this.compiler.context, srcPath, name).apply(childCompiler);
+    new webpack.EntryPlugin(this.compiler.context, srcPath, name).apply(
+      childCompiler
+    );
 
     childCompiler.runAsChild((error, entries, childCompilation) => {
       if (error) {
@@ -110,6 +121,11 @@ class BundleWebpackPlugin {
           ...compilation.errors,
           ...childCompilation.errors,
         ];
+        for (const [key, value] of childCompilation.entrypoints) {
+          if (!compilation.entrypoints.has(key)) {
+            compilation.entrypoints.set(key, value);
+          }
+        }
         cb();
       }
     });
