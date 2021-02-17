@@ -1,12 +1,10 @@
 {
   "name": "bundle-webpack-plugin",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Creates an additional application bundle for the selected execution environment (target).",
   "main": "index.js",
-  "types": "index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "types": "tsc index.js --declaration --allowJs --emitDeclarationOnly --outDir ."
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "kriasoft/bundle-webpack-plugin",
   "keywords": [
@@ -23,9 +21,6 @@
     "url": "https://github.com/kriasoft/bundle-webpack-plugin/issues"
   },
   "homepage": "https://github.com/kriasoft/bundle-webpack-plugin#readme",
-  "dependencies": {
-    "@types/webpack": "^4.41.26"
-  },
   "peerDependencies": {
     "webpack": ">=5.0.0"
   },
